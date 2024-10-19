@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>2D Mesh Visualization with Three.js</title>
+    <!-- Include import map to resolve 'three' module -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js"
+            }
+        }
+    </script>
+</head>
+<body>
+<div id="container"></div>
+<!-- Use type="module" to enable ES6 module imports -->
+<script type="module">
+    // Import necessary modules from Three.js
+    import * as THREE from 'three';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/DRACOLoader.js';
+
+    // Create the scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xeeeeee); // Light gray background
+
+    // Set up the camera
+    const camera = new THREE.PerspectiveCamera(
+        45, // Field of view
+        window.innerWidth / window.innerHeight, // Aspect ratio
+        0.1, // Near clipping plane
+        1000 // Far clipping plane
+    );
+    camera.position.set(0, 0, 2); // Position the camera along the positive Z-axis
+
+    // Create the renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Add the renderer's DOM element to the HTML container
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    // Add orbit controls to allow user interaction
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    // Set up the GLTF loader with Draco compression
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/'); // Draco decoder path
+    dracoLoader.preload();
+    loader.setDRACOLoader(dracoLoader);
+
+    // Array of your Draco-compressed GLB file URLs
+    const glbUrls = [
+        // 'https://suvarchal.github.io/meshes/core2_multi/core2_2d.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_2d_chunked_0xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_2d_chunked_1xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_2d_chunked_2xc.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_0xc.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_1xc.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_2xc.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_3xc.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_4xc.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_5xc.glb',
+        // // Add more GLB file URLs as needed
+    ];
+
+    // Create a parent group to hold all meshes
+    const allMeshesGroup = new THREE.Group();
+    scene.add(allMeshesGroup); // Add the group to the scene upfront
+
+    // Function to load multiple GLB files asynchronously and add them to the scene
+    function loadMeshes(urls) {
+        let loadedMeshes = 0;
+        const totalMeshes = urls.length;
+
+        urls.forEach((url, index) => {
+            loader.load(
+                url,
+                function (gltf) {
+                    // Create a group for each mesh
+                    const meshGroup = new THREE.Group();
+
+                    // Apply a red wireframe material to all meshes
+                    gltf.scene.traverse(function (child) {
+                        if (child.isMesh) {
+                            child.material = new THREE.MeshBasicMaterial({
+                                color: 0xff0000, // Red color
+                                wireframe: true,
+                                side: THREE.FrontSide
+                            });
+                        }
+                    });
+
+                    // Adjust the mesh orientation if necessary
+                    // gltf.scene.rotation.x = Math.PI / 2; // Rotate 90 degrees around X-axis
+
+                    // Add the loaded scene to the group
+                    meshGroup.add(gltf.scene);
+
+                    // Optionally, name the group for reference
+                    meshGroup.name = `MeshGroup_${index}`;
+
+                    // Add the group to the parent group
+                    allMeshesGroup.add(meshGroup);
+
+                    loadedMeshes++;
+
+                    // After all meshes are loaded, fit the camera to the entire group
+                    if (loadedMeshes === totalMeshes) {
+                        fitCameraToObject(camera, allMeshesGroup, controls);
+                    }
+                },
+                undefined,
+                function (error) {
+                    console.error('An error occurred while loading the GLB file:', error);
+                }
+            );
+        });
+    }
+
+    // Call the function to load the meshes
+    loadMeshes(glbUrls);
+
+    // Function to adjust camera to fit the loaded object or group
+    function fitCameraToObject(camera, object, controls) {
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        const maxSize = Math.max(size.x, size.y, size.z);
+        const fitHeightDistance = maxSize / (2 * Math.atan((Math.PI * camera.fov) / 360));
+        const fitWidthDistance = fitHeightDistance / camera.aspect;
+        const distance = 1.2 * Math.max(fitHeightDistance, fitWidthDistance);
+
+        // Move the camera to the new position
+        camera.position.copy(center);
+        camera.position.z += distance;
+        camera.lookAt(center);
+
+        // Update the controls target
+        if (controls) {
+            controls.target.copy(center);
+            controls.update();
+        }
+    }
+
+    // Add ambient light to the scene
+    const ambientLight = new THREE.AmbientLight(0xffffff); // White light
+    scene.add(ambientLight);
+
+    // Optional: Add axes helper to visualize coordinate axes
+    const axesHelper = new THREE.AxesHelper(5);
+    scene.add(axesHelper);
+
+    // Handle window resize
+    window.addEventListener('resize', onWindowResize, false);
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.minDistance = 1.1; // Slightly larger than your sphere's radius
+
+// Optional: Limit zoom-out distance
+        controls.maxDistance = 100; // Adjust based on your scene
+
+        controls.zoomSpeed = 1.5;
+        controls.update(); // Update controls
+        renderer.render(scene, camera); // Render the scene
+    }
+
+    animate(); // Start the animation loop
+</script>
+</body>
+</html>
