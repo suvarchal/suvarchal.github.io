@@ -48,6 +48,7 @@
     // Set up the GLTF loader with Draco compression
     const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
+    dracoLoader.setWorkerLimit(4); // 4 worker threads
     dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/'); // Draco decoder path
     dracoLoader.preload();
     loader.setDRACOLoader(dracoLoader);
@@ -58,19 +59,30 @@
         // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_2d_chunked_0xc.glb',
         // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_2d_chunked_1xc.glb',
         // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_2d_chunked_2xc.glb',
-        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_0xc.glb',
-        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_1xc.glb',
-        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_2xc.glb',
-        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_3xc.glb',
-        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_4xc.glb',
-        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_5xc.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_0xc.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_1xc.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_2xc.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_3xc.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_4xc.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_5xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_strip_0xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_strip_1xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_strip_2xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_strip_3xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_strip_4xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2d_chunked_strip_5xc.glb',
+
         // Add more GLB file URLs as needed
     ];
 
     // Create a parent group to hold all meshes
     const allMeshesGroup = new THREE.Group();
     scene.add(allMeshesGroup); // Add the group to the scene upfront
-
+    const meshMaterial = new THREE.MeshBasicMaterial({
+                                color: 0xff0000, // Red color
+                                wireframe: true,
+                                side: THREE.FrontSide
+                            });
     // Function to load multiple GLB files asynchronously and add them to the scene
     function loadMeshes(urls) {
         let loadedMeshes = 0;
@@ -86,11 +98,10 @@
                     // Apply a red wireframe material to all meshes
                     gltf.scene.traverse(function (child) {
                         if (child.isMesh) {
-                            child.material = new THREE.MeshBasicMaterial({
-                                color: 0xff0000, // Red color
-                                wireframe: true,
-                                side: THREE.FrontSide
-                            });
+                            child.material = meshMaterial;
+                            child.frustumCulled = true;
+                            child.castShadow = false;
+                            child.receiveShadow = false;
                         }
                     });
 
