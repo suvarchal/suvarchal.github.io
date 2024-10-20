@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FESOM CORE2 vs DART</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+</head>
+<body>
+<div id="view1" style="width: 50%; height: 100%; float: left;"></div>
+<div id="view2" style="width: 50%; height: 100%; float: left;"></div>
+
+<script>
+    const scene1 = new THREE.Scene();
+    const scene2 = new THREE.Scene();
+
+    // Set background color
+    scene1.background = new THREE.Color(0xeeeeee);
+    scene2.background = new THREE.Color(0xeeeeee);
+
+    const camera1 = new THREE.PerspectiveCamera(20, window.innerWidth / 2 / window.innerHeight, 0.1, 1000);
+    const camera2 = new THREE.PerspectiveCamera(20, window.innerWidth / 2 / window.innerHeight, 0.1, 1000);
+
+    const renderer1 = new THREE.WebGLRenderer();
+    const renderer2 = new THREE.WebGLRenderer();
+
+    renderer1.setSize(window.innerWidth / 2, window.innerHeight);
+    renderer2.setSize(window.innerWidth / 2, window.innerHeight);
+
+    document.getElementById('view1').appendChild(renderer1.domElement);
+    document.getElementById('view2').appendChild(renderer2.domElement);
+
+    const loader = new THREE.GLTFLoader();
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setWorkerLimit(4);
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+    loader.setDRACOLoader(dracoLoader);
+
+    // // Load HDRI texture
+    // const rgbeLoader = new THREE.RGBELoader();
+    // rgbeLoader.load('./papermill.hdr', function(texture) {
+    //     texture.mapping = THREE.EquirectangularReflectionMapping;
+    //     scene1.environment = texture;
+    //     scene2.environment = texture;
+    // });
+
+    // Change the color to red and enable back-face culling
+    const wireframeMaterial = new THREE.MeshBasicMaterial({ color: 'skyblue', wireframe: true, side: THREE.BackSide });
+    //const wireframeMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000, wireframe: true, side: THREE.BackSide });
+
+    //const wireframeMaterial = new THREE.MeshPhongMaterial({ color: 0x808080, wireframe: true, shininess: 30, side: THREE.BackSide });
+    function applyWireframeMaterial(object) {
+        object.traverse((child) => {
+            if (child.isMesh) {
+                child.material = wireframeMaterial;
+            }
+        });
+    }
+
+    function loadMeshes(urls, scene, camera, renderer) {
+        const group = new THREE.Group();
+        let loadedModels = 0;
+
+        urls.forEach(url => {
+            loader.load(url, function (gltf) {
+                const mesh = gltf.scene;
+
+                mesh.traverse(function (child) {
+                    if (child.isMesh) {
+                        child.geometry.computeBoundingBox();
+                        applyWireframeMaterial(child);
+                        // Ensure frustum culling is enabled
+                        child.frustumCulled = true;
+                    }
+                });
+
+                group.add(mesh);
+                loadedModels++;
+
+                // Add to scene and start animation after all models are loaded
+                if (loadedModels === urls.length) {
+                    scene.add(group);
+                    animate();
+                }
+            });
+        });
+
+        // Optionally add a simplified sphere
+        const sphereGeometry = new THREE.SphereGeometry(1.0, 16, 16);
+        // const sphereMaterial = new THREE.MeshStandardMaterial({
+        //     color: 0x808080,        // Gray color
+        //      metalness: 1.0,         // Amount of metallic appearance (0.0 to 1.0)
+        //      roughness: 1.0,         // Amount of surface roughness (0.0 to 1.0)
+        //      side: THREE.FrontSide,  // Which side of faces will be rendered
+        //      transparent: true,      // Whether the material is transparent
+        //      opacity: 1.0            // Opacity of the material (0.0 to 1.0)
+        //  });
+        const sphereMaterial = new THREE.MeshPhongMaterial({
+            color: 0x808080,
+            shininess: 60,
+            side: THREE.FrontSide,
+
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        scene.add(sphere);
+
+    }
+
+    // function loadMeshes(urls, scene, camera) {
+    //     const group = new THREE.Group();
+    //     const frustum = new THREE.Frustum();
+    //     const cameraViewProjectionMatrix = new THREE.Matrix4();
+    //
+    //     urls.forEach(url => {
+    //         loader.load(url, function(gltf) {
+    //             const mesh = gltf.scene;
+    //             mesh.geometry.computeBoundingBox()
+    //             applyWireframeMaterial(mesh);
+    //             group.add(mesh);
+    //         });
+    //     });
+    //
+    //     // Create and add a gray sphere below the mesh
+    //     const sphereGeometry = new THREE.SphereGeometry(1.0, 128, 128 );
+    //     const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x808080, shininess: 30, side: THREE.FrontSide });
+    //     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    //     sphere.position.set(0, 0, 0); // Center the sphere at (0, 0, 0)
+    //     group.add(sphere);
+    //
+    //     scene.add(group);
+    //
+    //     // Frustum culling logic
+    //     function updateFrustum() {
+    //         camera.updateMatrixWorld(); // make sure the camera matrix is updated
+    //         cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    //         frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
+    //     }
+    //
+    //     function checkFrustum() {
+    //         group.children.forEach(child => {
+    //             if (child.isMesh) {
+    //                 const visible = frustum.intersectsObject(child);
+    //                 child.visible = visible;
+    //             }
+    //         });
+    //     }
+    //
+    //     function animate() {
+    //         requestAnimationFrame(animate);
+    //         updateFrustum();
+    //         checkFrustum();
+    //         renderer1.render(scene1, camera1);
+    //         renderer2.render(scene2, camera2);
+    //     }
+    //
+    //     animate();
+    // }
+    // function loadMeshes(urls, scene, camera, renderer) {
+    //     //const loader = new THREE.GLTFLoader();
+    //     const promises = urls.map(url => new Promise((resolve, reject) => {
+    //         loader.load(url, gltf => {
+    //             const mesh = gltf.scene;
+    //             mesh.traverse(function (child) {
+    //                 if (child.isMesh) {
+    //                     child.geometry.computeBoundingBox();
+    //                     applyWireframeMaterial(child);
+    //                 }
+    //             });
+    //             resolve(mesh);
+    //         }, undefined, reject);
+    //     }));
+    //
+    //     Promise.all(promises).then(meshes => {
+    //         meshes.forEach(mesh => scene.add(mesh));
+    //         //animate();
+    //     });
+    //     // // Create and add a gray sphere below the mesh
+    //     //const sphereGeometry = new THREE.SphereGeometry(1.0, 8, 8);
+    //     const sphereGeometry = new THREE.Icos(1.0, 8, 8);
+    //     //const sphereMaterial = new THREE.MeshBasicMaterial({color: 0x808080, wireframe: false, side: THREE.FrontSide});
+    //     // const sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x808080, shininess: 0, side: THREE.FrontSide });
+    //     const sphereMaterial = new THREE.MeshStandardMaterial({
+    //         color: 0x808080,        // Gray color
+    //         metalness: 0.0,         // Amount of metallic appearance (0.0 to 1.0)
+    //         roughness: 1.0,         // Amount of surface roughness (0.0 to 1.0)
+    //         side: THREE.FrontSide,  // Which side of faces will be rendered
+    //         transparent: true,      // Whether the material is transparent
+    //         opacity: 1.0            // Opacity of the material (0.0 to 1.0)
+    //     });
+    //     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    //     sphere.position.set(0, 0, 0); // Center the sphere at (0, 0, 0)
+    //     scene.add(sphere);
+    //
+    //     function animate() {
+    //         //requestAnimationFrame(animate);
+    //         renderer.render(scene, camera);
+    //     }
+    // }
+
+    // URLs for mesh1
+    const mesh1Urls = [
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_0.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_1.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_2.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_3.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_4.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_5.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_6.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_7.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_8.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_9.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_10.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_11.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_12.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_13.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_14.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_15.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_16.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_17.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_18.glb',
+        // 'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_2_19.glb',
+        "https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/core2_multi/core2_3d_2.glb"
+    ];
+
+    // URLs for mesh2
+    const mesh2Urls = [
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_mesh_single_tri-processed2.glb',
+        //'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/ng5/ng5_mesh_single_tri-processed2.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_3d_chunked_0xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_3d_chunked_1xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_3d_chunked_2xc.glb',
+
+    ];
+
+    // Load meshes into respective scenes
+    loadMeshes(mesh1Urls, scene1, camera1);
+    loadMeshes(mesh2Urls, scene2, camera2);
+
+    // Set camera positions to view from the xz plane
+    camera1.position.set(0, -5, 0);
+    camera2.position.set(0, -5, 0);
+
+    // Add lights from the xz plane
+    const ambientLight1 = new THREE.AmbientLight(0x404040, 20); // soft white light
+    const ambientLight2 = new THREE.AmbientLight(0x404040, 20);
+    scene1.add(ambientLight1);
+    scene2.add(ambientLight2);
+
+    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0); // reduce intensity for more diffuse light
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.0); // reduce intensity for more diffuse light
+    directionalLight1.position.set(-10, -10, 0).normalize();
+    directionalLight2.position.set(-10, -10, 0).normalize();
+    scene1.add(directionalLight1);
+    scene2.add(directionalLight2);
+
+    // Add OrbitControls
+    const controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
+    const controls2 = new THREE.OrbitControls(camera2, renderer2.domElement);
+
+    function onWindowResize() {
+        camera1.aspect = window.innerWidth / 2 / window.innerHeight;
+        camera2.aspect = window.innerWidth / 2 / window.innerHeight;
+        camera1.updateProjectionMatrix();
+        camera2.updateProjectionMatrix();
+        renderer1.setSize(window.innerWidth / 2, window.innerHeight);
+        renderer2.setSize(window.innerWidth / 2, window.innerHeight);
+    }
+
+    window.addEventListener('resize', onWindowResize, false);
+    // Limit zoom-in distance to prevent camera from passing through the surface
+    controls1.minDistance = 1.1; // Slightly larger than your sphere's radius
+
+    // Optional: Limit zoom-out distance
+    controls1.maxDistance = 100; // Adjust based on your scene
+    controls1.zoomSpeed = 1.5;
+    controls1.enableDamping = true; // Enable damping for smooth controls
+
+    // Limit zoom-in distance to prevent camera from passing through the surface
+    controls2.minDistance = 1.1; // Slightly larger than your sphere's radius
+
+    // Optional: Limit zoom-out distance
+    controls2.maxDistance = 100; // Adjust based on your scene
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Synchronize camera movements
+        camera2.position.copy(camera1.position);
+        camera2.rotation.copy(camera1.rotation);
+
+
+        // Update controls
+        controls1.update();
+        controls2.update();
+
+        renderer1.render(scene1, camera1);
+        renderer2.render(scene2, camera2);
+    }
+
+    animate();
+</script>
+</body>
+</html>
