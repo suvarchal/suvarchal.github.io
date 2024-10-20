@@ -91,6 +91,9 @@
                     gltf.scene.traverse(function (child) {
                         if (child.isMesh) {
                             child.material = meshMaterial;
+                            child.frustumCulled = true;
+                            child.castShadow = false;
+                            child.receiveShadow = false;
                         }
                     });
 
