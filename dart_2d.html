@@ -70,7 +70,11 @@
     // Create a parent group to hold all meshes
     const allMeshesGroup = new THREE.Group();
     scene.add(allMeshesGroup); // Add the group to the scene upfront
-
+    const meshMaterial = new THREE.MeshBasicMaterial({
+                                color: 0xff0000, // Red color
+                                wireframe: true,
+                                side: THREE.FrontSide
+                            });
     // Function to load multiple GLB files asynchronously and add them to the scene
     function loadMeshes(urls) {
         let loadedMeshes = 0;
@@ -86,11 +90,7 @@
                     // Apply a red wireframe material to all meshes
                     gltf.scene.traverse(function (child) {
                         if (child.isMesh) {
-                            child.material = new THREE.MeshBasicMaterial({
-                                color: 0xff0000, // Red color
-                                wireframe: true,
-                                side: THREE.FrontSide
-                            });
+                            child.material = meshMaterial;
                         }
                     });
 
@@ -152,8 +152,8 @@
     scene.add(ambientLight);
 
     // Optional: Add axes helper to visualize coordinate axes
-    const axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
+    //const axesHelper = new THREE.AxesHelper(5);
+    //scene.add(axesHelper);
 
     // Handle window resize
     window.addEventListener('resize', onWindowResize, false);
