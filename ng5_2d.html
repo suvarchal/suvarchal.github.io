@@ -163,8 +163,8 @@
     scene.add(ambientLight);
 
     // Optional: Add axes helper to visualize coordinate axes
-    const axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
+   // const axesHelper = new THREE.AxesHelper(5);
+   // scene.add(axesHelper);
 
     // Handle window resize
     window.addEventListener('resize', onWindowResize, false);
@@ -175,14 +175,14 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // Animation loop
-    function animate() {
-        requestAnimationFrame(animate);
         controls.minDistance = 1.1; // Slightly larger than your sphere's radius
 
 // Optional: Limit zoom-out distance
-        controls.maxDistance = 100; // Adjust based on your scene
+        controls.maxDistance = 200; // Adjust based on your scene
 
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
         controls.zoomSpeed = 1.5;
         controls.update(); // Update controls
         renderer.render(scene, camera); // Render the scene
