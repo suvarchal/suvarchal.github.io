@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Mesh Visualization with Three.js and IndexedDB Caching</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+        }
+        #view1, #view2 {
+            width: 50%;
+            height: 100vh;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js"
+            }
+        }
+    </script>
+</head>
+<body>
+<div id="view1"></div>
+<div id="view2"></div>
+<script type="module">
+    import * as THREE from 'three';
+    import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js';
+    import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/GLTFLoader.js';
+    import {DRACOLoader} from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/DRACOLoader.js';
+
+    const scene1 = new THREE.Scene();
+    const scene2 = new THREE.Scene();
+
+    scene1.background = new THREE.Color(0xeeeeee);
+    scene2.background = new THREE.Color(0xeeeeee);
+
+    const camera1 = new THREE.PerspectiveCamera(25, window.innerWidth / 2 / window.innerHeight, 0.01, 1000);
+    const camera2 = new THREE.PerspectiveCamera(25, window.innerWidth / 2 / window.innerHeight, 0.001, 1000);
+
+    const renderer1 = new THREE.WebGLRenderer({antialias: true});
+    // const renderer2 = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+    const renderer2 = new THREE.WebGLRenderer({ antialias: true, reverseDepthBuffer : true });
+    renderer1.setSize(window.innerWidth / 2, window.innerHeight);
+    renderer1.setPixelRatio(window.devicePixelRatio);
+    renderer2.setSize(window.innerWidth / 2, window.innerHeight);
+    renderer2.setPixelRatio(window.devicePixelRatio);
+
+    document.getElementById('view1').appendChild(renderer1.domElement);
+    document.getElementById('view2').appendChild(renderer2.domElement);
+
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/gltf/');
+    loader.setDRACOLoader(dracoLoader);
+
+    // IndexedDB Functions
+    async function openDatabase() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open("MeshCacheDB", 1);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                db.createObjectStore("meshes");
+            };
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject("Failed to open IndexedDB");
+        });
+    }
+
+    async function cacheMesh(url, id, meshBlob) {
+        const db = await openDatabase();
+        const transaction = db.transaction("meshes", "readwrite");
+        const store = transaction.objectStore("meshes");
+        store.put(meshBlob, id);
+    }
+
+    async function getCachedMesh(id) {
+        const db = await openDatabase();
+        const transaction = db.transaction("meshes", "readonly");
+        const store = transaction.objectStore("meshes");
+
+        return new Promise((resolve) => {
+            const request = store.get(id);
+            request.onsuccess = () => resolve(request.result || undefined);
+            request.onerror = () => resolve(undefined);
+        });
+    }
+
+    // Loading Mesh with IndexedDB caching
+    async function loadMesh(url, scene) {
+        const meshId = url.split('/').pop();
+        let meshBlob;
+
+        try {
+            meshBlob = await getCachedMesh(meshId);
+            if (!meshBlob) throw new Error("Mesh not found in cache");
+        } catch (error) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.error("Failed to download mesh:", response.statusText);
+                return;
+            }
+            meshBlob = await response.blob();
+            await cacheMesh(url, meshId, meshBlob);
+        }
+
+        const arrayBuffer = await meshBlob.arrayBuffer();
+        loader.parse(arrayBuffer, '', (gltf) => {
+            applyWireframeMaterial(gltf.scene);
+            scene.add(gltf.scene);
+        });
+    }
+
+    const wireframeMaterial = new THREE.MeshStandardMaterial({
+        color: 'skyblue',
+        metalness: 0.0,
+        roughness: 1.0,
+        wireframe: true
+    });
+
+    function applyWireframeMaterial(object) {
+        object.traverse((child) => {
+            if (child.isMesh) {
+                child.material = wireframeMaterial;
+            }
+        });
+    }
+
+    async function loadMeshes(urls, scene) {
+        for (const url of urls) {
+            await loadMesh(url, scene);
+        }
+        addSphere(scene);  // Add the sphere to each scene
+    }
+
+    function addSphere(scene) {
+        const sphereGeometry = new THREE.SphereGeometry(0.96, 20, 20);
+        const sphereMaterial = new THREE.MeshStandardMaterial({
+            color: 0x808080,
+            metalness: 0.2,
+            roughness: 1.0
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        scene.add(sphere);
+    }
+
+    const mesh1Urls = [
+        "https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/core2_multi/core2_3d_2.glb"
+    ];
+
+    const mesh2Urls = [
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_3d_chunked_0xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_3d_chunked_1xc.glb',
+        'https://raw.githubusercontent.com/suvarchal/suvarchal.github.io/refs/heads/master/meshes/dart/dart_3d_chunked_2xc.glb',
+    ];
+
+    loadMeshes(mesh1Urls, scene1);
+    loadMeshes(mesh2Urls, scene2);
+
+    camera1.position.set(0, -5, 0);
+    camera2.position.set(0, -5, 0);
+
+    const ambientLight1 = new THREE.AmbientLight(0x404040, 20);
+    const ambientLight2 = new THREE.AmbientLight(0x404040, 20);
+    scene1.add(ambientLight1);
+    scene2.add(ambientLight2);
+
+    const controls1 = new OrbitControls(camera1, renderer1.domElement);
+    const controls2 = new OrbitControls(camera2, renderer2.domElement);
+    // Set minimum and maximum zoom distance
+    controls1.minDistance = 1.01; // Adjust this value to ensure you don't go inside the surface
+    controls1.maxDistance = 100;
+
+    controls2.minDistance = 1.01; // Same value as controls1 to keep both views consistent
+    controls2.maxDistance = 100;
+
+    function syncControls(sourceControls, targetCamera, targetControls) {
+        // Update target camera's position, rotation, and target based on source controls
+        targetCamera.position.copy(sourceControls.object.position);
+        targetCamera.rotation.copy(sourceControls.object.rotation);
+        targetControls.target.copy(sourceControls.target);
+        //targetControls.update(); //causes some recurrsion error.
+    }
+
+    // Listen to changes on controls1 and update controls2
+    controls1.addEventListener('change', () => {
+        syncControls(controls1, camera2, controls2);
+    });
+
+    // Listen to changes on controls2 and update controls1
+    controls2.addEventListener('change', () => {
+        syncControls(controls2, camera1, controls1);
+    });
+
+    function onWindowResize() {
+        camera1.aspect = window.innerWidth / 2 / window.innerHeight;
+        camera2.aspect = window.innerWidth / 2 / window.innerHeight;
+        camera1.updateProjectionMatrix();
+        camera2.updateProjectionMatrix();
+        renderer1.setSize(window.innerWidth / 2, window.innerHeight);
+        renderer2.setSize(window.innerWidth / 2, window.innerHeight);
+    }
+
+    window.addEventListener('resize', onWindowResize);
+
+    // Synchronize views and animate
+    function animate() {
+        requestAnimationFrame(animate);
+        // camera2.position.copy(camera1.position);
+        // camera2.rotation.copy(camera1.rotation);
+        // controls1.update();
+        // controls2.update();
+        renderer1.render(scene1, camera1);
+        renderer2.render(scene2, camera2);
+    }
+
+    animate();
+</script>
+</body>
+</html>
