@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="705" viewBox="0 0 1180 705" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="die" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4fb5"/><stop offset="1" stop-color="#25327f"/></linearGradient>
+    <linearGradient id="cpuOld" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5566c8"/><stop offset="1" stop-color="#33429c"/></linearGradient>
+    <linearGradient id="smeG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86c232"/><stop offset="1" stop-color="#5c8a19"/></linearGradient>
+    <linearGradient id="sveA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eda029"/><stop offset="1" stop-color="#c2740c"/></linearGradient>
+    <linearGradient id="hbmV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eda029"/><stop offset="1" stop-color="#c2740c"/></linearGradient>
+    <linearGradient id="ddrB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f86c4"/><stop offset="1" stop-color="#1c5f92"/></linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="705" fill="#ffffff"/>
+
+  <!-- ============ LineShine LX2 card ============ -->
+  <rect x="30" y="24" width="1120" height="500" rx="14" fill="#fbfcfd" stroke="#c3ccd9" stroke-width="2"/>
+  <text x="54" y="58" font-size="19" font-weight="700" fill="#1a1a1a">LineShine LX2 — matrix-capable Armv9 CPU</text>
+  <text x="54" y="81" font-size="13" fill="#666">304 cores · 2 compute chiplets · 8 clusters × 38 cores · no discrete GPU</text>
+
+  <!-- core cluster tiles -->
+  <g>
+    <rect x="56"  y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="190" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="324" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="458" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="592" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="726" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="860" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+    <rect x="994" y="96" width="116" height="44" rx="5" fill="url(#die)"/>
+  </g>
+  <text x="583" y="124" text-anchor="middle" font-size="12" fill="#cdd4f2" font-weight="600">◼ cluster · 38 cores  ×8</text>
+  <text x="583" y="162" text-anchor="middle" font-size="12.5" fill="#555">8 clusters × 38 cores = 304 cores per LX2 (across 2 chiplets)</text>
+
+  <!-- zoom: one core -->
+  <rect x="54" y="178" width="632" height="150" rx="10" fill="#ffffff" stroke="#25327f" stroke-width="2"/>
+  <text x="70" y="202" font-size="13" font-weight="700" fill="#25327f">Inside one Armv9 core</text>
+
+  <rect x="70" y="214" width="172" height="98" rx="7" fill="url(#cpuOld)" stroke="#26327c" stroke-width="1.5"/>
+  <text x="156" y="250" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Scalar</text>
+  <text x="156" y="272" text-anchor="middle" font-size="11" fill="#dbe0f5">integer / control</text>
+
+  <rect x="254" y="214" width="172" height="98" rx="7" fill="url(#sveA)" stroke="#8a5209" stroke-width="1.5"/>
+  <text x="340" y="246" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">SVE</text>
+  <text x="340" y="268" text-anchor="middle" font-size="11" fill="#fbe8cc">vector engine</text>
+  <text x="340" y="285" text-anchor="middle" font-size="11" fill="#fbe8cc">FP64 / FP32</text>
+
+  <rect x="438" y="214" width="232" height="98" rx="7" fill="url(#smeG)" stroke="#3d5e11" stroke-width="1.5"/>
+  <text x="554" y="246" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">SME</text>
+  <text x="554" y="268" text-anchor="middle" font-size="11" fill="#e6f3d4">matrix engine</text>
+  <text x="554" y="285" text-anchor="middle" font-size="11" fill="#e6f3d4">BF16 / FP16 / INT8</text>
+
+  <!-- callout -->
+  <rect x="706" y="178" width="444" height="150" rx="10" fill="#f4f8ee" stroke="#cfe3b3" stroke-width="1.5"/>
+  <text x="726" y="204" font-size="13.5" font-weight="700" fill="#5c8a19">SME ≈ the GPU's tensor core</text>
+  <text x="726" y="230" font-size="12.5" fill="#333">On-core matrix-multiply is exactly the work GPUs</text>
+  <text x="726" y="249" font-size="12.5" fill="#333">use tensor cores for — now done inside the CPU</text>
+  <text x="726" y="268" font-size="12.5" fill="#333">pipeline, with no PCIe hop and no separate</text>
+  <text x="726" y="287" font-size="12.5" fill="#333">accelerator to feed.</text>
+  <text x="726" y="312" font-size="11.5" font-style="italic" fill="#7a8a5a">Per CPU: 240 TF BF16 · 960 TOPS INT8</text>
+
+  <!-- memory row -->
+  <rect x="54" y="344" width="545" height="72" rx="9" fill="url(#hbmV)" stroke="#8a5209" stroke-width="2"/>
+  <text x="326" y="372" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">32 GB on-package HBM</text>
+  <text x="326" y="394" text-anchor="middle" font-size="12" fill="#fbe8cc">up to 4 TB/s — GPU-class bandwidth</text>
+
+  <rect x="615" y="344" width="535" height="72" rx="9" fill="url(#ddrB)" stroke="#12456b" stroke-width="2"/>
+  <text x="882" y="372" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">≤ 256 GB off-package DDR5</text>
+  <text x="882" y="394" text-anchor="middle" font-size="12" fill="#dbeaf6">large-capacity memory tier</text>
+
+  <!-- data type badges -->
+  <g font-size="12" font-weight="700">
+    <rect x="54"  y="432" width="70" height="27" rx="13" fill="#e8ecf6" stroke="#8892b8"/><text x="89"  y="450" text-anchor="middle" fill="#33429c">FP64</text>
+    <rect x="132" y="432" width="70" height="27" rx="13" fill="#e8ecf6" stroke="#8892b8"/><text x="167" y="450" text-anchor="middle" fill="#33429c">FP32</text>
+    <rect x="210" y="432" width="70" height="27" rx="13" fill="#eef7dd" stroke="#8bbf4a"/><text x="245" y="450" text-anchor="middle" fill="#5c8a19">BF16</text>
+    <rect x="288" y="432" width="70" height="27" rx="13" fill="#eef7dd" stroke="#8bbf4a"/><text x="323" y="450" text-anchor="middle" fill="#5c8a19">FP16</text>
+    <rect x="366" y="432" width="70" height="27" rx="13" fill="#eef7dd" stroke="#8bbf4a"/><text x="401" y="450" text-anchor="middle" fill="#5c8a19">INT8</text>
+  </g>
+  <text x="452" y="450" font-size="12.5" fill="#777">one ISA spans HPC (FP64) and AI (BF16 / INT8) — no accelerator required</text>
+
+  <!-- perf strip -->
+  <text x="54" y="500" font-size="13" fill="#333"><tspan font-weight="700" fill="#25327f">Per LX2:</tspan> 60.3 TF FP64  ·  240 TF BF16/FP16  ·  960 TOPS INT8  ·  LQLink interconnect 1.6 Tb/s per node</text>
+
+  <!-- ============ BOTTOM BANNER ============ -->
+  <rect x="30" y="544" width="1120" height="140" rx="14" fill="#1a2340"/>
+  <text x="54" y="578" font-size="16" font-weight="700" fill="#86c232">#1 on the TOP500 — June 2026</text>
+  <text x="54" y="604" font-size="13" fill="#e8ecf6">First supercomputer to sustain more than 2 ExaFLOPS of FP64 using only CPUs: <tspan font-weight="700" fill="#fff">2.47 EF FP64 peak · 1.54 EF BF16 sustained</tspan></text>
+  <text x="54" y="625" font-size="13" fill="#e8ecf6">40,960 LX2 processors · <tspan font-weight="700" fill="#fff">2,451,840 Armv9 cores</tspan> · zero GPUs — dethroning GPU-based El Capitan.</text>
+  <line x1="54" y1="640" x2="1126" y2="640" stroke="#3a4568" stroke-width="1"/>
+  <text x="54" y="662" font-size="12" fill="#aeb6cc">Not a one-off: Intel Xeon adds <tspan font-weight="700" fill="#dbe0f5">AMX</tspan> (TMUL matrix unit, BF16/INT8); Fujitsu <tspan font-weight="700" fill="#dbe0f5">A64FX</tspan> powered Fugaku with Arm SVE.</text>
+  <text x="54" y="680" font-size="12" fill="#aeb6cc">Across vendors the matrix/tensor unit is migrating <tspan font-style="italic" fill="#dbe0f5">onto</tspan> the CPU — narrowing the reason to attach a separate GPU.</text>
+</svg>
